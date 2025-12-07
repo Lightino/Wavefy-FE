@@ -1,0 +1,10 @@
+---
+const { href = '#', label } = Astro.props;
+---
+
+<a
+  href={href}
+  class="inline-flex items-center justify-center rounded-2xl border border-accent bg-accent px-6 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-base shadow-soft hover:bg-accent-soft hover:border-accent-soft transition-all"
+>
+  {label}
+</a>

@@ -1,0 +1,56 @@
+@import url("https://fonts.googleapis.com/css2?family=Nabla&display=swap");
+@import "tailwindcss";
+
+/* Tema principale: puoi cambiare qui i colori */
+@theme {
+  --color-base: #050505; /* sfondo quasi nero */
+  --color-foreground: #f9fafb; /* testo chiaro */
+  --color-accent: #ffd600; /* giallo principale */
+  --color-accent-soft: #fff1a6; /* giallo più soft */
+  --color-border-subtle: #1f2933; /* grigio scuro per bordi */
+
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+
+  --shadow-soft: 0 24px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* Piccole rifiniture globali */
+html {
+  scroll-behavior: smooth;
+}
+
+h1 {
+  font-family: "Nabla", system-ui;
+}
+
+body {
+  @apply bg-base text-foreground font-sans antialiased;
+}
+
+/* ===== Waveform di sfondo (canvas animato) ===== */
+
+.wave-bg {
+  pointer-events: none;
+}
+
+.wave-bg canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+@keyframes wf-loading-bar {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}

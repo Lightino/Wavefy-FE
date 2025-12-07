@@ -1,0 +1,171 @@
+---
+const statusInitial = 'MP3 in ingresso, waveform MP4 in uscita.';
+---
+
+<section
+  class="w-full max-w-xl rounded-2xl border border-border-subtle bg-base/85 px-6 py-7 shadow-soft backdrop-blur-md"
+>
+  <form
+    id="wf-upload-form"
+    class="flex flex-col gap-5"
+  >
+    <label
+      class="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border-subtle/80 bg-base/80 px-5 py-8 text-center cursor-pointer hover:border-accent/80 transition-colors"
+    >
+      <input
+        id="wf-audio-input"
+        name="audio"
+        type="file"
+        accept="audio/mpeg,audio/mp3"
+        class="hidden"
+      />
+      <span class="text-[11px] font-medium uppercase tracking-[0.22em] text-foreground/80">
+        Seleziona o trascina un MP3
+      </span>
+      <span class="text-[11px] text-foreground/50">
+        Wavefy It genera la waveform animata.
+      </span>
+    </label>
+
+    <button
+      id="wf-convert-button"
+      type="submit"
+      class="inline-flex items-center justify-center rounded-full border border-accent bg-accent px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-base shadow-soft hover:bg-accent-soft hover:border-accent-soft transition-all disabled:opacity-35 disabled:cursor-not-allowed"
+    >
+      Converti in MP4
+    </button>
+
+    <p
+      id="wf-status"
+      class="text-[11px] text-foreground/60 min-h-[1.5em]"
+    >
+      {statusInitial}
+    </p>
+  </form>
+
+  {/** OVERLAY FULLSCREEN PER IL CARICAMENTO **/}
+  <div
+    id="wf-loading-overlay"
+    class="fixed inset-0 z-40 flex items-center justify-center bg-base/80 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-200"
+    aria-hidden="true"
+  >
+    <div class="flex flex-col items-center gap-4">
+      <span class="text-xs tracking-[0.22em] uppercase text-foreground/70">
+        Conversione in corso
+      </span>
+      <div class="relative w-64 h-1.5 overflow-hidden rounded-full bg-border-subtle/80">
+        <div class="absolute inset-y-0 w-1/3 rounded-full bg-accent animate-[wf-loading-bar_1.1s_ease-in-out_infinite]"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    const form = document.getElementById('wf-upload-form');
+    const statusEl = document.getElementById('wf-status');
+    const convertButton = document.getElementById('wf-convert-button');
+    const audioInput = document.getElementById('wf-audio-input');
+    const overlay = document.getElementById('wf-loading-overlay');
+
+    const showOverlay = () => {
+      if (!overlay) return;
+      overlay.classList.remove('opacity-0', 'pointer-events-none');
+      overlay.classList.add('opacity-100');
+      document.body.style.overflow = 'hidden';
+    };
+
+    const hideOverlay = () => {
+      if (!overlay) return;
+      overlay.classList.add('opacity-0', 'pointer-events-none');
+      overlay.classList.remove('opacity-100');
+      document.body.style.overflow = '';
+    };
+
+    if (form && statusEl && convertButton && audioInput) {
+      const label = form.querySelector('label');
+
+      const setStatus = (msg) => {
+        statusEl.textContent = msg;
+      };
+
+      if (label) {
+        // niente click manuale per evitare doppio file picker
+        label.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          label.classList.add('border-accent');
+        });
+
+        label.addEventListener('dragleave', () => {
+          label.classList.remove('border-accent');
+        });
+
+        label.addEventListener('drop', (e) => {
+          e.preventDefault();
+          label.classList.remove('border-accent');
+          if (e.dataTransfer?.files?.length) {
+            const file = e.dataTransfer.files[0];
+            audioInput.files = e.dataTransfer.files;
+            setStatus(`Selezionato: ${file.name}`);
+          }
+        });
+      }
+
+      audioInput.addEventListener('change', () => {
+        if (audioInput.files && audioInput.files.length > 0) {
+          setStatus(`Selezionato: ${audioInput.files[0].name}`);
+        } else {
+          setStatus('MP3 in ingresso, waveform MP4 in uscita.');
+        }
+      });
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        if (!audioInput.files || audioInput.files.length === 0) {
+          setStatus('Nessun file selezionato.');
+          return;
+        }
+
+        const file = audioInput.files[0];
+        const formData = new FormData();
+        formData.append('audio', file);
+
+        convertButton.disabled = true;
+        setStatus('Conversione in corso…');
+        showOverlay();
+
+        try {
+          const res = await fetch('/api/convert', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            console.error('Errore server:', text);
+            setStatus('Errore durante la conversione.');
+            return;
+          }
+
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'waveform.mp4';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+
+          setStatus('Fatto. MP4 scaricato.');
+        } catch (err) {
+          console.error('Errore fetch:', err);
+          setStatus('Errore di rete.');
+        } finally {
+          convertButton.disabled = false;
+          hideOverlay();
+        }
+      });
+    }
+  </script>
+</section>
